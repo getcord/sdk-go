@@ -1,3 +1,8 @@
+// Package server provides utility functions to make it easier to integrate Cord
+// into your application.
+//
+// For more information about the Cord-specific terms used here, see the
+// concepts documentation at https://docs.cord.com/concepts/.
 package server
 
 import (
@@ -14,14 +19,16 @@ func setTimeForTest(t time.Time) {
 	now = func() time.Time { return t }
 }
 
+// A Status is the state of a user or organization.
 type Status int
 
 const (
 	Unspecified Status = iota
 	Active
-	Deleted
+	Deleted // Deleted users or organizations will have authentication attempts refused
 )
 
+// String returns the string value of a Status for use in the API
 func (s Status) String() string {
 	switch s {
 	case Active:
@@ -32,10 +39,14 @@ func (s Status) String() string {
 	return ""
 }
 
+// MarshalJSON marshals a Status to its text format
 func (s Status) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.String())
 }
 
+// UserDetails contains the information about a user that needs to be synced to
+// Cord.  Any values that are left at their zero value are not sent except
+// Email, which is required.
 type UserDetails struct {
 	Email             string `json:"email"`
 	Name              string `json:"name,omitempty"`
@@ -45,12 +56,16 @@ type UserDetails struct {
 	LastName          string `json:"last_name,omitempty"`
 }
 
+// OrganizationDetails contains the information about an organization that needs
+// to be synced to Cord.  Any values that are left at their zero value are not
+// sent except Name, which is required.
 type OrganizationDetails struct {
 	Name    string   `json:"name"`
 	Status  Status   `json:"status,omitempty"`
 	Members []string `json:"members,omitempty"`
 }
 
+// ClientAuthTokenData is the data that can be supplied in a client auth token.
 type ClientAuthTokenData struct {
 	UserID              string
 	OrganizationID      string
@@ -58,6 +73,8 @@ type ClientAuthTokenData struct {
 	OrganizationDetails *OrganizationDetails
 }
 
+// ClientAuthToken returns a client auth token suitable for authenticating a
+// user to Cord.
 func ClientAuthToken(appID string, secret []byte, data ClientAuthTokenData) (string, error) {
 	if data.UserID == "" {
 		return "", errors.New("missing UserID")
@@ -92,6 +109,8 @@ func ClientAuthToken(appID string, secret []byte, data ClientAuthTokenData) (str
 	return tokenString, nil
 }
 
+// ServerAuthToken returns a server auth token suitable for authenticating
+// requests to Cord's REST API (see https://docs.cord.com/rest/).
 func ServerAuthToken(appID string, secret []byte) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{
 		"app_id": appID,
