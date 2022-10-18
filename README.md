@@ -15,4 +15,4 @@ go get cord.com/server
 
 ## Documentation
 
-You can find the documentation [on the Cord Developer Documentation web site](https://docs.cord.com/server/go/).
+You can find the documentation [on the Cord Developer Documentation web site](https://docs.cord.com/reference/server-libraries/).
