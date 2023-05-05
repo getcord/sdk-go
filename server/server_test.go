@@ -13,6 +13,8 @@ var (
 	kSecret = []byte("0987654321")
 	kUserID = "112233"
 	kOrgID  = "445566"
+	kCustomerID  = "345456567"
+	kCustomerSecret = []byte("123234345")
 )
 
 func init() {
@@ -38,6 +40,17 @@ func TestServerAuthTokenBasics(t *testing.T) {
 		t.Fatal(err)
 	}
 	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjU1MzgzMTczLCJpYXQiOjE2NTUzODMxMTN9.tHHEyK1iNNXQefd2Vva6O36MsgfDMmV3aq4YbUTi1tWSTTZr3k7brtgdFKuRIKwJdfn1fOJg-DylL2sRXjPJSA" {
+		t.Fatalf("Token generation failed, received %v", token)
+	}
+}
+
+func TestApplicationManagementAuthTokenBasics(t *testing.T) {
+	token, err := ApplicationManagementAuthToken(kCustomerID, kCustomerSecret)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJjdXN0b21lcl9pZCI6IjM0NTQ1NjU2NyIsImV4cCI6MTY1NTM4MzE3MywiaWF0IjoxNjU1MzgzMTEzfQ.nxfnM4F4jp9lckTec8a7r5garU57KleN_qnV7eaUePaxScKhIpFTWgpFpa_Xj7hooJ0bTZN5Rk4VB1TgWg-f2Q" {
 		t.Fatalf("Token generation failed, received %v", token)
 	}
 }
