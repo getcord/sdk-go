@@ -110,7 +110,7 @@ func ClientAuthToken(appID string, secret []byte, data ClientAuthTokenData) (str
 }
 
 // ServerAuthToken returns a server auth token suitable for authenticating
-// requests to Cord's REST API (see https://docs.cord.com/reference/rest-api/).
+// requests to Cord's REST API (see https://docs.cord.com/rest-apis/).
 func ServerAuthToken(appID string, secret []byte) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{
 		"app_id": appID,
@@ -125,7 +125,7 @@ func ServerAuthToken(appID string, secret []byte) (string, error) {
 }
 
 // ApplicationManagementAuthToken returns a server side auth token suitable for
-// authenticating requests to Cord's Applications REST API (see https://docs.cord.com/reference/rest-api/).
+// authenticating requests to Cord's Applications REST API (see https://docs.cord.com/rest-apis/).
 func ApplicationManagementAuthToken(customerID string, secret []byte) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{
 		"customer_id": customerID,
