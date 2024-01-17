@@ -2,7 +2,7 @@
 // into your application.
 //
 // For more information about the Cord-specific terms used here, see the
-// concepts documentation at https://docs.cord.com/concepts/.
+// reference documentation at https://docs.cord.com/reference/.
 package server
 
 import (
@@ -19,13 +19,13 @@ func setTimeForTest(t time.Time) {
 	now = func() time.Time { return t }
 }
 
-// A Status is the state of a user or organization.
+// A Status is the state of a user or group.
 type Status int
 
 const (
 	Unspecified Status = iota
 	Active
-	Deleted // Deleted users or organizations will have authentication attempts refused
+	Deleted // Deleted users or groups will have authentication attempts refused
 )
 
 // String returns the string value of a Status for use in the API
@@ -45,32 +45,72 @@ func (s Status) MarshalJSON() ([]byte, error) {
 }
 
 // UserDetails contains the information about a user that needs to be synced to
-// Cord.  Any values that are left at their zero value are not sent except
-// Email, which is required.
+// Cord.  Any values that are left at their zero value are not sent.
 type UserDetails struct {
-	Email             string `json:"email"`
-	Name              string `json:"name,omitempty"`
+	// Email contains the user's email address.
+	Email string `json:"email,omitempty"`
+	// Name contains the user's full name, to be displayed in the user interface.
+	Name string `json:"name,omitempty"`
+	// ProfilePictureURL contains a URL to an image for the user's profile picture.
 	ProfilePictureURL string `json:"profile_picture_url,omitempty"`
-	Status            Status `json:"status,omitempty"`
-	FirstName         string `json:"first_name,omitempty"`
-	LastName          string `json:"last_name,omitempty"`
+	// Status contains the status of this user.
+	Status Status `json:"status,omitempty"`
+	// Metadata contains arbitrary additional data about this user.  The values
+	// may only be booleans, numbers, and strings; in particular, nested object
+	// values or arrays will be rejected by the server.
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	// Deprecated: This field is deprecated and has no effect
+	FirstName string `json:"-"`
+	// Deprecated: This field is deprecated and has no effect
+	LastName string `json:"-"`
 }
 
-// OrganizationDetails contains the information about an organization that needs
-// to be synced to Cord.  Any values that are left at their zero value are not
-// sent except Name, which is required.
-type OrganizationDetails struct {
-	Name    string   `json:"name"`
-	Status  Status   `json:"status,omitempty"`
-	Members []string `json:"members,omitempty"`
+// GroupDetails contains the information about a group that needs to be synced
+// to Cord.  Any values that are left at their zero value are not sent except
+// Name, which is required.
+type GroupDetails struct {
+	Name     string                 `json:"name"`
+	Status   Status                 `json:"status,omitempty"`
+	Members  []string               `json:"members,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
+
+type OrganizationDetails = GroupDetails
 
 // ClientAuthTokenData is the data that can be supplied in a client auth token.
 type ClientAuthTokenData struct {
-	UserID              string
-	OrganizationID      string
-	UserDetails         *UserDetails
-	OrganizationDetails *OrganizationDetails
+	// UserID contains the identifier for the user that this token will
+	// authenticate as.
+	UserID string
+	// OrganizationID contains the identifier for the group that this token will
+	// authenticate as.
+	//
+	// Deprecated: Organizations are now called groups, so the GroupID field
+	// should be used instead.
+	OrganizationID string
+	// GroupID contains the identifier for the group that this token will
+	// authenticate as.  We recommend not setting this field, which allows the
+	// user to see objects from any group they are a member of.  If a non-zero
+	// value is set, the user using this token will only be able to see objects in
+	// that group.
+	GroupID string
+	// UserDetails contains the information about the user that will be synced to
+	// Cord when this token is used.  If set, the user does not need to exist
+	// before this token is used and will be created with these details when the
+	// token is used for authenticate.
+	UserDetails *UserDetails
+	// OrganizationDetails contains the information about the group to set when
+	// they log in.
+	//
+	// Deprecated: Organizations are now called groups, so the GroupDetails field
+	// should be used instead.
+	OrganizationDetails *GroupDetails
+	// GroupDetails contains the information about the group that will be synced
+	// to Cord when this token is used.  If set, the group does not need to exist
+	// before this token is used and will be created with these details when the
+	// token is used for authenticate, and the user will be made a member of the
+	// group.
+	GroupDetails *GroupDetails
 }
 
 // ClientAuthToken returns a client auth token suitable for authenticating a
@@ -79,27 +119,30 @@ func ClientAuthToken(appID string, secret []byte, data ClientAuthTokenData) (str
 	if data.UserID == "" {
 		return "", errors.New("missing UserID")
 	}
-	if data.OrganizationID == "" {
-		return "", errors.New("missing OrganizationID")
-	}
 	claims := jwt.MapClaims{
-		"app_id":          appID,
-		"iat":             now().Unix(),
-		"exp":             now().Add(1 * time.Minute).Unix(),
-		"user_id":         data.UserID,
-		"organization_id": data.OrganizationID,
+		"app_id":  appID,
+		"iat":     now().Unix(),
+		"exp":     now().Add(1 * time.Minute).Unix(),
+		"user_id": data.UserID,
+	}
+	if data.GroupID != "" {
+		claims["group_id"] = data.GroupID
+	} else if data.OrganizationID != "" {
+		claims["group_id"] = data.OrganizationID
 	}
 	if data.UserDetails != nil {
-		if data.UserDetails.Email == "" {
-			return "", errors.New("missing required user field: Email")
-		}
 		claims["user_details"] = data.UserDetails
 	}
-	if data.OrganizationDetails != nil {
-		if data.OrganizationDetails.Name == "" {
-			return "", errors.New("missing required organization field: Name")
+	if data.GroupDetails != nil {
+		if data.GroupDetails.Name == "" {
+			return "", errors.New("missing required group field: Name")
 		}
-		claims["organization_details"] = data.OrganizationDetails
+		claims["group_details"] = data.GroupDetails
+	} else if data.OrganizationDetails != nil {
+		if data.OrganizationDetails.Name == "" {
+			return "", errors.New("missing required group field: Name")
+		}
+		claims["group_details"] = data.OrganizationDetails
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 	tokenString, err := token.SignedString(secret)
@@ -129,8 +172,8 @@ func ServerAuthToken(appID string, secret []byte) (string, error) {
 func ApplicationManagementAuthToken(customerID string, secret []byte) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{
 		"customer_id": customerID,
-		"iat":    now().Unix(),
-		"exp":    now().Add(1 * time.Minute).Unix(),
+		"iat":         now().Unix(),
+		"exp":         now().Add(1 * time.Minute).Unix(),
 	})
 	tokenString, err := token.SignedString(secret)
 	if err != nil {

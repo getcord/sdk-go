@@ -9,11 +9,11 @@ import (
 )
 
 var (
-	kAppID  = "1234567890"
-	kSecret = []byte("0987654321")
-	kUserID = "112233"
-	kOrgID  = "445566"
-	kCustomerID  = "345456567"
+	kAppID          = "1234567890"
+	kSecret         = []byte("0987654321")
+	kUserID         = "112233"
+	kGroupID        = "445566"
+	kCustomerID     = "345456567"
 	kCustomerSecret = []byte("123234345")
 )
 
@@ -58,15 +58,63 @@ func TestApplicationManagementAuthTokenBasics(t *testing.T) {
 func TestClientAuthTokenBasics(t *testing.T) {
 	token, err := ClientAuthToken(kAppID, kSecret,
 		ClientAuthTokenData{
-			UserID:         kUserID,
-			OrganizationID: kOrgID,
+			UserID:  kUserID,
+			GroupID: kGroupID,
 			UserDetails: &UserDetails{
-				Email:     "flooey@example.com",
-				Name:      "Adam Vartanian",
+				Email:  "flooey@example.com",
+				Name:   "Adam Vartanian",
+				Status: Active,
+			},
+			GroupDetails: &GroupDetails{
+				Name:   "Cord",
+				Status: Active,
+			},
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjU1MzgzMTczLCJncm91cF9kZXRhaWxzIjp7Im5hbWUiOiJDb3JkIiwic3RhdHVzIjoiYWN0aXZlIn0sImdyb3VwX2lkIjoiNDQ1NTY2IiwiaWF0IjoxNjU1MzgzMTEzLCJ1c2VyX2RldGFpbHMiOnsiZW1haWwiOiJmbG9vZXlAZXhhbXBsZS5jb20iLCJuYW1lIjoiQWRhbSBWYXJ0YW5pYW4iLCJzdGF0dXMiOiJhY3RpdmUifSwidXNlcl9pZCI6IjExMjIzMyJ9.SFC9fhZlkOQIfDswKk9y8cvXKzdy--PWZAXWYVt8XkUrkoeuxhXeZhnxsYk6iXzZXSoPti5_oHbTr45AvznXuQ" {
+		t.Fatalf("Token generation failed, received %v", token)
+	}
+}
+
+func TestClientAuthTokenNoGroup(t *testing.T) {
+	token, err := ClientAuthToken(kAppID, kSecret,
+		ClientAuthTokenData{
+			UserID: kUserID,
+			UserDetails: &UserDetails{
+				Email: "flooey@example.com",
+				Name:  "Adam Vartanian",
+				Metadata: map[string]interface{}{
+					"employee":                true,
+					"employee_id":             12345,
+					"employee_favorite_movie": "The Princess Bride",
+				},
+			},
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjU1MzgzMTczLCJpYXQiOjE2NTUzODMxMTMsInVzZXJfZGV0YWlscyI6eyJlbWFpbCI6ImZsb29leUBleGFtcGxlLmNvbSIsIm5hbWUiOiJBZGFtIFZhcnRhbmlhbiIsIm1ldGFkYXRhIjp7ImVtcGxveWVlIjp0cnVlLCJlbXBsb3llZV9mYXZvcml0ZV9tb3ZpZSI6IlRoZSBQcmluY2VzcyBCcmlkZSIsImVtcGxveWVlX2lkIjoxMjM0NX19LCJ1c2VyX2lkIjoiMTEyMjMzIn0.oN7LfxdaCBqlc_t2Btb9qi3jiaz0SlZxkzplnNlJaR3mK_B99pK20YDiO8rEPcPkYw6qozqDljUdAN5FMz8wgA" {
+		t.Fatalf("Token generation failed, received %v", token)
+	}
+}
+
+func TestClientAuthTokenDeprecatedFeatures(t *testing.T) {
+	token, err := ClientAuthToken(kAppID, kSecret,
+		ClientAuthTokenData{
+			UserID: kUserID,
+			// This is called GroupID now
+			OrganizationID: kGroupID,
+			UserDetails: &UserDetails{
+				Email: "flooey@example.com",
+				Name:  "Adam Vartanian",
+				// FirstName and LastName are deprecated and ignored
 				FirstName: "Adam",
 				LastName:  "Vartanian",
 				Status:    Active,
 			},
+			// This is called GroupDetails now
 			OrganizationDetails: &OrganizationDetails{
 				Name:   "Cord",
 				Status: Active,
@@ -75,7 +123,7 @@ func TestClientAuthTokenBasics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjU1MzgzMTczLCJpYXQiOjE2NTUzODMxMTMsIm9yZ2FuaXphdGlvbl9kZXRhaWxzIjp7Im5hbWUiOiJDb3JkIiwic3RhdHVzIjoiYWN0aXZlIn0sIm9yZ2FuaXphdGlvbl9pZCI6IjQ0NTU2NiIsInVzZXJfZGV0YWlscyI6eyJlbWFpbCI6ImZsb29leUBleGFtcGxlLmNvbSIsIm5hbWUiOiJBZGFtIFZhcnRhbmlhbiIsInN0YXR1cyI6ImFjdGl2ZSIsImZpcnN0X25hbWUiOiJBZGFtIiwibGFzdF9uYW1lIjoiVmFydGFuaWFuIn0sInVzZXJfaWQiOiIxMTIyMzMifQ.fun1La5PVyjhSDbRB4fm9io80YMcK0Znghs0OMkeLjzxDFvwBY34elwO7CV2jApLV_-GL0DKHvyY6hQIUzgZXA" {
+	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjU1MzgzMTczLCJncm91cF9kZXRhaWxzIjp7Im5hbWUiOiJDb3JkIiwic3RhdHVzIjoiYWN0aXZlIn0sImdyb3VwX2lkIjoiNDQ1NTY2IiwiaWF0IjoxNjU1MzgzMTEzLCJ1c2VyX2RldGFpbHMiOnsiZW1haWwiOiJmbG9vZXlAZXhhbXBsZS5jb20iLCJuYW1lIjoiQWRhbSBWYXJ0YW5pYW4iLCJzdGF0dXMiOiJhY3RpdmUifSwidXNlcl9pZCI6IjExMjIzMyJ9.SFC9fhZlkOQIfDswKk9y8cvXKzdy--PWZAXWYVt8XkUrkoeuxhXeZhnxsYk6iXzZXSoPti5_oHbTr45AvznXuQ" {
 		t.Fatalf("Token generation failed, received %v", token)
 	}
 }
@@ -83,14 +131,19 @@ func TestClientAuthTokenBasics(t *testing.T) {
 func TestClientAuthTokenEncoding(t *testing.T) {
 	token, err := ClientAuthToken(kAppID, kSecret,
 		ClientAuthTokenData{
-			UserID:         kUserID,
-			OrganizationID: kOrgID,
+			UserID:  kUserID,
+			GroupID: kGroupID,
 			UserDetails: &UserDetails{
 				Email:  "flooey@example.com",
 				Name:   "Adam Vartanian",
 				Status: Active,
+				Metadata: map[string]interface{}{
+					"employee":                true,
+					"employee_id":             12345,
+					"employee_favorite_movie": "The Princess Bride",
+				},
 			},
-			OrganizationDetails: &OrganizationDetails{
+			GroupDetails: &GroupDetails{
 				Name:   "Cord",
 				Status: Active,
 			},
@@ -105,8 +158,8 @@ func TestClientAuthTokenEncoding(t *testing.T) {
 	if payload["user_id"] != kUserID {
 		t.Errorf("Wrong user ID, received %s", payload["user_id"])
 	}
-	if payload["organization_id"] != kOrgID {
-		t.Errorf("Wrong org ID, received %s", payload["organization_id"])
+	if payload["group_id"] != kGroupID {
+		t.Errorf("Wrong group ID, received %s", payload["group_id"])
 	}
 	userDetails := payload["user_details"].(map[string]interface{})
 	if userDetails["email"] != "flooey@example.com" {
@@ -118,18 +171,31 @@ func TestClientAuthTokenEncoding(t *testing.T) {
 	if userDetails["status"] != "active" {
 		t.Errorf("Wrong status, received %s", userDetails["status"])
 	}
-	if len(userDetails) > 3 {
+	userMetadata := userDetails["metadata"].(map[string]interface{})
+	if userMetadata["employee"] != true {
+		t.Errorf("Wrong metadata:employee, received %v", userMetadata["employee"])
+	}
+	if userMetadata["employee_id"] != 12345.0 {
+		t.Errorf("Wrong metadata:employee_id, received %v", userMetadata["employee_id"])
+	}
+	if userMetadata["employee_favorite_movie"] != "The Princess Bride" {
+		t.Errorf("Wrong metadata:employee_favorite_movie, received %v", userMetadata["employee_favorite_movie"])
+	}
+	if len(userMetadata) > 3 {
+		t.Errorf("Wrong number of user metadata fields, received %d", len(userMetadata))
+	}
+	if len(userDetails) > 4 {
 		t.Errorf("Wrong number of user fields, received %d", len(userDetails))
 	}
-	orgDetails := payload["organization_details"].(map[string]interface{})
-	if orgDetails["name"] != "Cord" {
-		t.Errorf("Wrong name, received %s", orgDetails["name"])
+	groupDetails := payload["group_details"].(map[string]interface{})
+	if groupDetails["name"] != "Cord" {
+		t.Errorf("Wrong name, received %s", groupDetails["name"])
 	}
-	if orgDetails["status"] != "active" {
-		t.Errorf("Wrong status, received %s", orgDetails["status"])
+	if groupDetails["status"] != "active" {
+		t.Errorf("Wrong status, received %s", groupDetails["status"])
 	}
-	if len(orgDetails) > 2 {
-		t.Errorf("Wrong number of org fields, received %d", len(orgDetails))
+	if len(groupDetails) > 2 {
+		t.Errorf("Wrong number of group fields, received %d", len(groupDetails))
 	}
 }
 
@@ -138,20 +204,12 @@ func TestClientAuthTokenMissingFields(t *testing.T) {
 	if err == nil {
 		t.Error("Accepted empty ClientAuthTokenData")
 	}
-	_, err = ClientAuthToken(kAppID, kSecret, ClientAuthTokenData{UserID: kUserID})
-	if err == nil {
-		t.Error("Accepted missing organization ID")
-	}
-	_, err = ClientAuthToken(kAppID, kSecret, ClientAuthTokenData{OrganizationID: kOrgID})
+	_, err = ClientAuthToken(kAppID, kSecret, ClientAuthTokenData{GroupID: kGroupID})
 	if err == nil {
 		t.Error("Accepted missing user ID")
 	}
-	_, err = ClientAuthToken(kAppID, kSecret, ClientAuthTokenData{UserID: kUserID, OrganizationID: kOrgID, UserDetails: &UserDetails{}})
+	_, err = ClientAuthToken(kAppID, kSecret, ClientAuthTokenData{UserID: kUserID, GroupID: kGroupID, GroupDetails: &GroupDetails{}})
 	if err == nil {
-		t.Error("Accepted empty PlatformUserDetails")
-	}
-	_, err = ClientAuthToken(kAppID, kSecret, ClientAuthTokenData{UserID: kUserID, OrganizationID: kOrgID, OrganizationDetails: &OrganizationDetails{}})
-	if err == nil {
-		t.Error("Accepted empty PlaformOrganizationDetails")
+		t.Error("Accepted empty PlaformGroupDetails")
 	}
 }
