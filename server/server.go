@@ -181,3 +181,18 @@ func ApplicationManagementAuthToken(customerID string, secret []byte) (string, e
 	}
 	return tokenString, nil
 }
+
+// ProjectManagementAuthToken returns a server side auth token suitable for
+// authenticating requests to Cord's Project REST API (see https://docs.cord.com/rest-apis/).
+func ProjectManagementAuthToken(customerID string, secret []byte) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{
+		"customer_id": customerID,
+		"iat":         now().Unix(),
+		"exp":         now().Add(1 * time.Minute).Unix(),
+	})
+	tokenString, err := token.SignedString(secret)
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
+}
