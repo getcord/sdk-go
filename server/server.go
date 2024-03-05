@@ -115,12 +115,12 @@ type ClientAuthTokenData struct {
 
 // ClientAuthToken returns a client auth token suitable for authenticating a
 // user to Cord.
-func ClientAuthToken(appID string, secret []byte, data ClientAuthTokenData) (string, error) {
+func ClientAuthToken(projectID string, secret []byte, data ClientAuthTokenData) (string, error) {
 	if data.UserID == "" {
 		return "", errors.New("missing UserID")
 	}
 	claims := jwt.MapClaims{
-		"app_id":  appID,
+		"project_id":  projectID,
 		"iat":     now().Unix(),
 		"exp":     now().Add(1 * time.Minute).Unix(),
 		"user_id": data.UserID,
@@ -154,9 +154,9 @@ func ClientAuthToken(appID string, secret []byte, data ClientAuthTokenData) (str
 
 // ServerAuthToken returns a server auth token suitable for authenticating
 // requests to Cord's REST API (see https://docs.cord.com/rest-apis/).
-func ServerAuthToken(appID string, secret []byte) (string, error) {
+func ServerAuthToken(projectID string, secret []byte) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{
-		"app_id": appID,
+		"project_id": projectID,
 		"iat":    now().Unix(),
 		"exp":    now().Add(1 * time.Minute).Unix(),
 	})
@@ -170,16 +170,7 @@ func ServerAuthToken(appID string, secret []byte) (string, error) {
 // ApplicationManagementAuthToken returns a server side auth token suitable for
 // authenticating requests to Cord's Applications REST API (see https://docs.cord.com/rest-apis/).
 func ApplicationManagementAuthToken(customerID string, secret []byte) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{
-		"customer_id": customerID,
-		"iat":         now().Unix(),
-		"exp":         now().Add(1 * time.Minute).Unix(),
-	})
-	tokenString, err := token.SignedString(secret)
-	if err != nil {
-		return "", err
-	}
-	return tokenString, nil
+	return ProjectManagementAuthToken(customerID, secret)
 }
 
 // ProjectManagementAuthToken returns a server side auth token suitable for

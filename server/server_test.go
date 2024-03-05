@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	kAppID          = "1234567890"
+	kProjectId      = "1234567890"
 	kSecret         = []byte("0987654321")
 	kUserID         = "112233"
 	kGroupID        = "445566"
@@ -35,17 +35,17 @@ func valuesFromToken(token string) map[string]interface{} {
 }
 
 func TestServerAuthTokenBasics(t *testing.T) {
-	token, err := ServerAuthToken(kAppID, kSecret)
+	token, err := ServerAuthToken(kProjectId, kSecret)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjU1MzgzMTczLCJpYXQiOjE2NTUzODMxMTN9.tHHEyK1iNNXQefd2Vva6O36MsgfDMmV3aq4YbUTi1tWSTTZr3k7brtgdFKuRIKwJdfn1fOJg-DylL2sRXjPJSA" {
+	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NTUzODMxNzMsImlhdCI6MTY1NTM4MzExMywicHJvamVjdF9pZCI6IjEyMzQ1Njc4OTAifQ.viFVl8J-_2reh5PaGgVx2v2wEYsYTwooIkFulg1xp-D1sBTdIxm1mY67xSrKmm1KJlaYXpTuHy50hxuNkUcHrw" {
 		t.Fatalf("Token generation failed, received %v", token)
 	}
 }
 
-func TestApplicationManagementAuthTokenBasics(t *testing.T) {
-	token, err := ApplicationManagementAuthToken(kCustomerID, kCustomerSecret)
+func TestProjectManagementAuthTokenBasics(t *testing.T) {
+	token, err := ProjectManagementAuthToken(kCustomerID, kCustomerSecret)
 
 	if err != nil {
 		t.Fatal(err)
@@ -55,8 +55,23 @@ func TestApplicationManagementAuthTokenBasics(t *testing.T) {
 	}
 }
 
+func TestProjectManagementAuthTokenAndApplicationManagementAuthTokenReturn(t *testing.T) {
+	projectToken, projectErr := ProjectManagementAuthToken(kCustomerID, kCustomerSecret)
+	applicationToken, applicationErr := ApplicationManagementAuthToken(kCustomerID, kCustomerSecret)
+
+	if projectErr != nil {
+		t.Fatal(projectErr)
+	}
+	if applicationErr != nil {
+		t.Fatal(applicationErr)
+	}
+	if projectToken != applicationToken {
+		t.Fatalf("ProjectManagementAuthToken return and ApplicationManagementAuthToken return should be equal")
+	}
+}
+
 func TestClientAuthTokenBasics(t *testing.T) {
-	token, err := ClientAuthToken(kAppID, kSecret,
+	token, err := ClientAuthToken(kProjectId, kSecret,
 		ClientAuthTokenData{
 			UserID:  kUserID,
 			GroupID: kGroupID,
@@ -73,13 +88,13 @@ func TestClientAuthTokenBasics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjU1MzgzMTczLCJncm91cF9kZXRhaWxzIjp7Im5hbWUiOiJDb3JkIiwic3RhdHVzIjoiYWN0aXZlIn0sImdyb3VwX2lkIjoiNDQ1NTY2IiwiaWF0IjoxNjU1MzgzMTEzLCJ1c2VyX2RldGFpbHMiOnsiZW1haWwiOiJmbG9vZXlAZXhhbXBsZS5jb20iLCJuYW1lIjoiQWRhbSBWYXJ0YW5pYW4iLCJzdGF0dXMiOiJhY3RpdmUifSwidXNlcl9pZCI6IjExMjIzMyJ9.SFC9fhZlkOQIfDswKk9y8cvXKzdy--PWZAXWYVt8XkUrkoeuxhXeZhnxsYk6iXzZXSoPti5_oHbTr45AvznXuQ" {
+	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NTUzODMxNzMsImdyb3VwX2RldGFpbHMiOnsibmFtZSI6IkNvcmQiLCJzdGF0dXMiOiJhY3RpdmUifSwiZ3JvdXBfaWQiOiI0NDU1NjYiLCJpYXQiOjE2NTUzODMxMTMsInByb2plY3RfaWQiOiIxMjM0NTY3ODkwIiwidXNlcl9kZXRhaWxzIjp7ImVtYWlsIjoiZmxvb2V5QGV4YW1wbGUuY29tIiwibmFtZSI6IkFkYW0gVmFydGFuaWFuIiwic3RhdHVzIjoiYWN0aXZlIn0sInVzZXJfaWQiOiIxMTIyMzMifQ.5wbp5lRd4DYSZ8R9gsDnzKQQxbUNd9Dw-SyiZvyZtajMn8LGFn6_eu-BpyV7zVgcCXGMl3XcbAGTJcofJ-NOgA" {
 		t.Fatalf("Token generation failed, received %v", token)
 	}
 }
 
 func TestClientAuthTokenNoGroup(t *testing.T) {
-	token, err := ClientAuthToken(kAppID, kSecret,
+	token, err := ClientAuthToken(kProjectId, kSecret,
 		ClientAuthTokenData{
 			UserID: kUserID,
 			UserDetails: &UserDetails{
@@ -95,13 +110,13 @@ func TestClientAuthTokenNoGroup(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjU1MzgzMTczLCJpYXQiOjE2NTUzODMxMTMsInVzZXJfZGV0YWlscyI6eyJlbWFpbCI6ImZsb29leUBleGFtcGxlLmNvbSIsIm5hbWUiOiJBZGFtIFZhcnRhbmlhbiIsIm1ldGFkYXRhIjp7ImVtcGxveWVlIjp0cnVlLCJlbXBsb3llZV9mYXZvcml0ZV9tb3ZpZSI6IlRoZSBQcmluY2VzcyBCcmlkZSIsImVtcGxveWVlX2lkIjoxMjM0NX19LCJ1c2VyX2lkIjoiMTEyMjMzIn0.oN7LfxdaCBqlc_t2Btb9qi3jiaz0SlZxkzplnNlJaR3mK_B99pK20YDiO8rEPcPkYw6qozqDljUdAN5FMz8wgA" {
+	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NTUzODMxNzMsImlhdCI6MTY1NTM4MzExMywicHJvamVjdF9pZCI6IjEyMzQ1Njc4OTAiLCJ1c2VyX2RldGFpbHMiOnsiZW1haWwiOiJmbG9vZXlAZXhhbXBsZS5jb20iLCJuYW1lIjoiQWRhbSBWYXJ0YW5pYW4iLCJtZXRhZGF0YSI6eyJlbXBsb3llZSI6dHJ1ZSwiZW1wbG95ZWVfZmF2b3JpdGVfbW92aWUiOiJUaGUgUHJpbmNlc3MgQnJpZGUiLCJlbXBsb3llZV9pZCI6MTIzNDV9fSwidXNlcl9pZCI6IjExMjIzMyJ9.wO1TRjWEza1VsQPpO0V0Vdw28YAvntX51edRXH_bl66ulPXz_zDIsrGAGFzph-wtvW5VTkW5JxhcYwran0-KCg" {
 		t.Fatalf("Token generation failed, received %v", token)
 	}
 }
 
 func TestClientAuthTokenDeprecatedFeatures(t *testing.T) {
-	token, err := ClientAuthToken(kAppID, kSecret,
+	token, err := ClientAuthToken(kProjectId, kSecret,
 		ClientAuthTokenData{
 			UserID: kUserID,
 			// This is called GroupID now
@@ -123,13 +138,13 @@ func TestClientAuthTokenDeprecatedFeatures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhcHBfaWQiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNjU1MzgzMTczLCJncm91cF9kZXRhaWxzIjp7Im5hbWUiOiJDb3JkIiwic3RhdHVzIjoiYWN0aXZlIn0sImdyb3VwX2lkIjoiNDQ1NTY2IiwiaWF0IjoxNjU1MzgzMTEzLCJ1c2VyX2RldGFpbHMiOnsiZW1haWwiOiJmbG9vZXlAZXhhbXBsZS5jb20iLCJuYW1lIjoiQWRhbSBWYXJ0YW5pYW4iLCJzdGF0dXMiOiJhY3RpdmUifSwidXNlcl9pZCI6IjExMjIzMyJ9.SFC9fhZlkOQIfDswKk9y8cvXKzdy--PWZAXWYVt8XkUrkoeuxhXeZhnxsYk6iXzZXSoPti5_oHbTr45AvznXuQ" {
+	if token != "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NTUzODMxNzMsImdyb3VwX2RldGFpbHMiOnsibmFtZSI6IkNvcmQiLCJzdGF0dXMiOiJhY3RpdmUifSwiZ3JvdXBfaWQiOiI0NDU1NjYiLCJpYXQiOjE2NTUzODMxMTMsInByb2plY3RfaWQiOiIxMjM0NTY3ODkwIiwidXNlcl9kZXRhaWxzIjp7ImVtYWlsIjoiZmxvb2V5QGV4YW1wbGUuY29tIiwibmFtZSI6IkFkYW0gVmFydGFuaWFuIiwic3RhdHVzIjoiYWN0aXZlIn0sInVzZXJfaWQiOiIxMTIyMzMifQ.5wbp5lRd4DYSZ8R9gsDnzKQQxbUNd9Dw-SyiZvyZtajMn8LGFn6_eu-BpyV7zVgcCXGMl3XcbAGTJcofJ-NOgA" {
 		t.Fatalf("Token generation failed, received %v", token)
 	}
 }
 
 func TestClientAuthTokenEncoding(t *testing.T) {
-	token, err := ClientAuthToken(kAppID, kSecret,
+	token, err := ClientAuthToken(kProjectId, kSecret,
 		ClientAuthTokenData{
 			UserID:  kUserID,
 			GroupID: kGroupID,
@@ -152,8 +167,8 @@ func TestClientAuthTokenEncoding(t *testing.T) {
 		t.Fatal(err)
 	}
 	payload := valuesFromToken(token)
-	if payload["app_id"] != kAppID {
-		t.Errorf("Wrong app ID, received %s", payload["app_id"])
+	if payload["project_id"] != kProjectId {
+		t.Errorf("Wrong project ID, received %s", payload["project_id"])
 	}
 	if payload["user_id"] != kUserID {
 		t.Errorf("Wrong user ID, received %s", payload["user_id"])
@@ -200,15 +215,15 @@ func TestClientAuthTokenEncoding(t *testing.T) {
 }
 
 func TestClientAuthTokenMissingFields(t *testing.T) {
-	_, err := ClientAuthToken(kAppID, kSecret, ClientAuthTokenData{})
+	_, err := ClientAuthToken(kProjectId, kSecret, ClientAuthTokenData{})
 	if err == nil {
 		t.Error("Accepted empty ClientAuthTokenData")
 	}
-	_, err = ClientAuthToken(kAppID, kSecret, ClientAuthTokenData{GroupID: kGroupID})
+	_, err = ClientAuthToken(kProjectId, kSecret, ClientAuthTokenData{GroupID: kGroupID})
 	if err == nil {
 		t.Error("Accepted missing user ID")
 	}
-	_, err = ClientAuthToken(kAppID, kSecret, ClientAuthTokenData{UserID: kUserID, GroupID: kGroupID, GroupDetails: &GroupDetails{}})
+	_, err = ClientAuthToken(kProjectId, kSecret, ClientAuthTokenData{UserID: kUserID, GroupID: kGroupID, GroupDetails: &GroupDetails{}})
 	if err == nil {
 		t.Error("Accepted empty PlaformGroupDetails")
 	}
